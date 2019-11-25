@@ -5,7 +5,7 @@
 Script de comprobación de entrega de práctica
 
 Para ejecutarlo, desde la shell:
- $ python check-pfinal.py login_github
+ $ python check-pfinal.py login_gitlab
 
 """
 
@@ -16,9 +16,9 @@ import subprocess
 
 if len(sys.argv) != 2:
     print
-    sys.exit("Usage : $ python check-pfinal.py login_github")
+    sys.exit("Usage : $ python check-pfinal.py login_gitlab")
 
-repo_git = "http://github.com/" + sys.argv[1] + "/ptavi-pfinal"
+repo_git = "http://gitlab.etsit.urjc.es/" + sys.argv[1] + "/ptavi-pfinal"
 
 files = ['README.md',
          'LICENSE',
@@ -36,7 +36,6 @@ files = ['README.md',
          'check-pfinal.py',
          'mp32rtp',
          'cancion.mp3',
-         'avanzadas.txt',
          'passwords.txt',
          '.git']
 
@@ -97,32 +96,7 @@ if ficheros_entregados == len(files)-1:
     print "La entrega de la parte básica es correcta."
     print
 
-if avanzadas:
-    print "Se ha implementado funcionalidades avanzadas."
-    print
-else:
-    print "No se han implementado funcionalidades avanzadas. No hay fichero avanzadas.txt"
-    print
-
 for filename in student_file_list:
-    if filename == "avanzadas.txt":
-        fich = open('/tmp/' + aleatorio + '/' + filename, 'r')
-        while 1:
-            line = fich.readline()
-            if not line:
-                break
-            line = line[:-1]
-            if line.decode('utf-8') in avanzadasDict:
-                numero_avanzadas += 1
-                puntuacion_max_avanzadas += avanzadasDict[line.decode('utf-8')]
-            else:
-                error = 1
-                print "Error: En avanzadas.txt, se ha encontrado una funcionalidad avanzada no especificada: " + line
-    if filename not in student_file_list and filename not in ["avanzadas.txt", "passwords.txt"]:
-        error = 1
-        error_ficheros = 1
-        print "Error: " + filename + " no encontrado. Tienes que subirlo al repositorio."
-        print
     if ".libpcap" in filename:
         output = subprocess.Popen(["tshark", "-r", "/tmp/" + aleatorio + "/" + filename], stdout=subprocess.PIPE)
         output2 = subprocess.Popen(["wc"], stdin=output.stdout, stdout=subprocess.PIPE)
@@ -145,15 +119,6 @@ if error_ficheros:
     print "Utiliza 'git mv fichero_antiguo fichero_nuevo' si tienen nombre incorrecto."
     print
     print "Al finalizar este proceso, haz un commit y pasa el check otra vez."
-
-if puntuacion_max_avanzadas > 2.5:
-    puntuacion_max_avanzadas = 2.5
-
-if avanzadas:
-    print
-    print "Se han implementado " + str(numero_avanzadas) + " requisitos avanzados"
-    print "La puntuación máxima que se puede obtener por requisitos avanzados es de " + str(puntuacion_max_avanzadas) + " puntos"
-    print
 
 if not error:
     print "La salida de pep8 es: (si todo va bien, no ha de mostrar nada)"
