@@ -1,0 +1,17 @@
+image: "python:3.8-slim"
+
+before_script:
+  - python3 --version
+
+stages:
+  - Static Analysis
+
+check:
+  stage: Static Analysis
+  script:
+  - python3 check-pfinal.py --local
+
+pep8:
+  stage: Static Analysis
+  script:
+  - pycodestyle uaclient.py uaserver.py proxy_registrar.py
