@@ -44,7 +44,7 @@ def writelog(data, log):
 
 if __name__ == '__main__':
     try:
-        CONFIG = sys.argv[1]
+        CONFXML = sys.argv[1]
         METHOD = sys.argv[2]
         OPTION = sys.argv[3]
     except IndexError:
@@ -53,41 +53,61 @@ if __name__ == '__main__':
     parser = make_parser()
     xHandler = XMLHandler()
     parser.setContentHandler(xHandler)
-    parser.parse(open(CONFIG))
+    parser.parse(open(CONFXML))
 
-    configlist = xHandler.get_tags()
+    config = xHandler.get_tags()
 
-    writelog('Starting...', )
+    writelog('Starting...', config['log']['path'])
 
-    SERVER_NAME = address.split('@')[0]
-    SERVER_IP = address.split('@')[1].split(':')[0]
-    SERVER_PORT = int(address.split('@')[1].split(':')[1])
-    SDP = '\r\nv=0\r\no=robin@gotham.com 127.0.0.1\r\n'
-    SDP += 's=misesion\r\nt=0\r\nm=audio 34543 RTP\r\n'
+    CLIENT_NAME = config['account']['username']
+    CLIENT_IP = config['uaserver']['ip']
+    CLIENT_PORT = config['uaserver']['puerto']
+
+    RTP_PORT = config['rtpaudio']['puerto']
+
+    SDP = '\r\nv=0\r\no=' + CLIENT_NAME + ' ' + CLIENT_IP + '\r\n'
+    SDP += 's=misesion\r\nt=0\r\nm=audio ' + RTP_PORT + ' RTP\r\n'
+    content_type = 'Content-Type: application/sdp\r\n'
     content_length = 'Content-Length: ' + str(len(SDP)) + '\r\n'
-    # Contenido que vamos a enviar
-    if METHOD == 'INVITE':
-        LINE = 'INVITE sip:' + SERVER_NAME + '@' + SERVER_IP + ' SIP/2.0\r\n'
-        LINE += content_length + SDP
-    elif METHOD == 'BYE':
-        LINE = 'BYE sip:' + SERVER_NAME + '@' + SERVER_IP + ' SIP/2.0\r\n'
 
-    ACK_LINE = 'ACK sip:' + SERVER_NAME + '@' + SERVER_IP + ' SIP/2.0\r\n'
+    # Contenido que vamos a enviar
+    if METHOD == 'REGISTER':
+        LINE = 'REGISTER sip:' + CLIENT_NAME + ':' + CLIENT_PORT + ' SIP/2.0\r\n'
+        LINE += 'Expires: ' + str(OPTION)
+    elif METHOD == 'INVITE':
+        LINE = 'INVITE sip:' + OPTION + ' SIP/2.0\r\n'
+        LINE += content_type + content_length + SDP
+    elif METHOD == 'BYE':
+        LINE = 'BYE sip:' + OPTION + ' SIP/2.0\r\n'
+
+    ACK_LINE = 'ACK sip:' + OPTION + ' SIP/2.0\r\n'
 
     # Creamos el socket, lo configuramos y lo atamos a un servidor/puerto
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as my_socket:
         my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        my_socket.connect((SERVER_IP, SERVER_PORT))
+        try:
+            my_socket.connect((config['regproxy']['ip'], config['regproxy']['puerto']))
+        except ConnectionRefusedError:
+            error = 'Error: No server listening at ' + config['regproxy']['ip'] + ' port ' + config['regproxy']['puerto']
+            writelog(error, config['log']['path'])
+            sys.exit('Conexión Fallida.')
 
         print("Enviando:\r\n" + LINE)
         my_socket.send(bytes(LINE, 'utf-8') + b'\r\n')
+        sent = 'Sent to ' + config['regproxy']['ip'] + ':' + config['regproxy']['puerto'] + ':' + LINE.replace('\r\n', ' ')
+        writelog(sent, config['log']['path'])
         data = my_socket.recv(1024)
+        received = 'Received from ' + config['regproxy']['ip'] + ':' + config['regproxy']['puerto'] + ':' + data.decode('utf-8').replace('\r\n', ' ')
+        writelog(received, config['log']['path'])
 
         print('Recibido --\r\n', data.decode('utf-8'))
         if data.decode('utf-8').split(' ')[1] == '100':
             print("Enviando: " + ACK_LINE)
             my_socket.send(bytes(ACK_LINE, 'utf-8') + b'\r\n')
+            sentack = 'Sent to ' + config['regproxy']['ip'] + ':' + config['regproxy']['puerto'] + ':' + ACK_LINE.replace('\r\n', ' ')
+            writelog(sentack, config['log']['path'])
 
+        writelog('Finishing.', config['log']['path'])
         print("Terminando socket...")
 
     print("Fin.")
