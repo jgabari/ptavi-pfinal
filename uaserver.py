@@ -8,6 +8,9 @@ import socketserver
 import sys
 import simplertp
 import secrets
+import uaclient
+from xml.sax import make_parser
+from xml.sax.handler import ContentHandler
 
 
 class EchoHandler(socketserver.DatagramRequestHandler):
@@ -24,15 +27,24 @@ class EchoHandler(socketserver.DatagramRequestHandler):
             # Leyendo línea a línea lo que nos envía el cliente
             line = self.rfile.read()
             if line.decode('utf-8').split(' ')[0] == 'INVITE':
+                SDP = '\r\nv=0\r\no=' + config['account']['username'] + ' ' + config['uaserver']['ip'] + '\r\n'
+                SDP += 's=misesion\r\nt=0\r\nm=audio ' + config['rtpaudio']['puerto'] + ' RTP\r\n'
+                content_type = 'Content-Type: application/sdp\r\n'
+                content_length = 'Content-Length: ' + str(len(SDP)) + '\r\n'
+
                 self.wfile.write(b"SIP/2.0 100 Trying\r\n\r\n" +
                                  b"SIP/2.0 180 Ringing\r\n\r\n" +
-                                 b"SIP/2.0 200 OK\r\n\r\n")
+                                 b"SIP/2.0 200 OK\r\n\r\n" +
+                                 bytes(content_type + content_length + SDP, 'utf-8') +
+                                 b"\r\n")
             elif line.decode('utf-8').split(' ')[0] == 'ACK':
                 send_audio = True
             elif line.decode('utf-8').split(' ')[0] == 'BYE':
                 self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
-            else:
+            elif line.decode('utf-8').split(' ')[0] != ('INVITE', 'ACK', 'BYE'):
                 self.wfile.write(b"SIP/2.0 405 Method Not Allowed\r\n\r\n")
+            else:
+                self.wfile.write(b"SIP/2.0 400 Bad Request\r\n\r\n")
             if send_audio:
                 # Extraemos del sdp la dirección a la que enviar el audio
                 while 1:
@@ -63,12 +75,18 @@ class EchoHandler(socketserver.DatagramRequestHandler):
 if __name__ == "__main__":
     # Creamos servidor de eco y escuchamos
     try:
-        SERVER_IP = sys.argv[1]
-        SERVER_PORT = int(sys.argv[2])
-        AUDIO_FILE = sys.argv[3]
+        CONFXML = sys.argv[1]
     except NameError:
-        sys.exit('Usage: python3 server.py IP port audio_file')
-    serv = socketserver.UDPServer((SERVER_IP, SERVER_PORT), EchoHandler)
+        sys.exit('Usage: python3 uaserver.py config')
+
+    parser = make_parser()
+    xHandler = uaclient.XMLHandler()
+    parser.setContentHandler(xHandler)
+    parser.parse(open(CONFXML))
+
+    config = xHandler.get_tags()
+
+    serv = socketserver.UDPServer((config['uaserver']['ip'], config['uaserver']['puerto']), EchoHandler)
     print("Listening...")
     try:
         serv.serve_forever()

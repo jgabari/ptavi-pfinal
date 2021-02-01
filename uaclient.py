@@ -10,6 +10,7 @@ from xml.sax import make_parser
 from xml.sax.handler import ContentHandler
 import time
 
+
 # Clase para procesar el xml
 class XMLHandler(ContentHandler):
     def __init__(self):
@@ -30,6 +31,7 @@ class XMLHandler(ContentHandler):
 
     def get_tags(self):
         return self.content
+
 
 def writelog(data, log):
     hora = time.strftime('%H', time.gmtime(time.time()))
