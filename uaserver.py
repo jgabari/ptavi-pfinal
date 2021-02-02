@@ -26,17 +26,17 @@ class EchoHandler(socketserver.DatagramRequestHandler):
         while 1:
             # Leyendo línea a línea lo que nos envía el cliente
             line = self.rfile.read()
+            uaclient.writelog(line.decode('utf-8').replace('\r\n', ' '), config['log']['path'])
             if line.decode('utf-8').split(' ')[0] == 'INVITE':
                 SDP = '\r\nv=0\r\no=' + config['account']['username'] + ' ' + config['uaserver']['ip'] + '\r\n'
                 SDP += 's=misesion\r\nt=0\r\nm=audio ' + config['rtpaudio']['puerto'] + ' RTP\r\n'
                 content_type = 'Content-Type: application/sdp\r\n'
                 content_length = 'Content-Length: ' + str(len(SDP)) + '\r\n'
 
-                self.wfile.write(b"SIP/2.0 100 Trying\r\n\r\n" +
-                                 b"SIP/2.0 180 Ringing\r\n\r\n" +
-                                 b"SIP/2.0 200 OK\r\n\r\n" +
-                                 bytes(content_type + content_length + SDP, 'utf-8') +
-                                 b"\r\n")
+                answer = "SIP/2.0 100 Trying\r\n\r\nSIP/2.0 180 Ringing\r\n\r\nSIP/2.0 200 OK\r\n\r\n" + content_type + content_length + SDP + "\r\n"
+                self.wfile.write(bytes(answer, 'utf-8'))
+                uaclient.writelog(answer.replace('\r\n', ' '), config['log']['path'])
+
             elif line.decode('utf-8').split(' ')[0] == 'ACK':
                 send_audio = True
             elif line.decode('utf-8').split(' ')[0] == 'BYE':

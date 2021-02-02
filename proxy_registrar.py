@@ -7,6 +7,8 @@ import socketserver
 import sys
 import json
 import time
+import uaclient
+from xml.sax import make_parser
 
 
 class SIPRegisterHandler(socketserver.DatagramRequestHandler):
@@ -28,6 +30,7 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
               ' manda:\r\n')
         text = self.rfile.read().decode('utf-8')
         print(text)
+
         word_list = text.split()
         if word_list[0] == 'REGISTER':
             client = word_list[1].split(':')[1]
@@ -52,8 +55,20 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                     expires = time.strftime(self.format, expire_time)
                     self.diccionario[client]['expires'] = expires
                     self.register2json()
+            self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
+        elif word_list[0] == 'INVITE':
+            self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
+        elif word_list[0] == 'ACK':
+
+        elif word_list[0] == 'BYE':
+            self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
+        elif word_list[0] != ('REGISTER', 'INVITE', 'ACK', 'BYE'):
+            self.wfile.write(b"SIP/2.0 405 Method Not Allowed\r\n\r\n")
+        else:
+            self.wfile.write(b"SIP/2.0 400 Bad Request\r\n\r\n")
+
         print(self.diccionario)
-        self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
+
 
     def expiration(self):
         """
@@ -90,13 +105,22 @@ if __name__ == "__main__":
     # Listens at localhost ('') port puerto
     # and calls the EchoHandler class to manage the request
     try:
-        puerto = int(sys.argv[1])
+        CONFXML = sys.argv[1]
     except NameError:
-        sys.exit('Usage: server.py puerto')
-    serv = socketserver.UDPServer(('', puerto), SIPRegisterHandler)
+        sys.exit('Usage: python3 proxy_registrar.py config')
 
-    print("Lanzando servidor UDP de eco...")
+    parser = make_parser()
+    xHandler = uaclient.XMLHandler()
+    parser.setContentHandler(xHandler)
+    parser.parse(open(CONFXML))
+
+    config = xHandler.get_tags()
+
+    serv = socketserver.UDPServer((config['server']['ip'], config['server']['puerto']), SIPRegisterHandler)
+
+    print("Server " + config['server']['name'] + " listening at port " + config['server']['puerto'] + "...")
+
     try:
         serv.serve_forever()
     except KeyboardInterrupt:
-        print("Finalizado servidor")
+        print("Server ended.")
