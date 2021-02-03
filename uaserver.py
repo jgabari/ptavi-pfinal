@@ -17,6 +17,7 @@ class EchoHandler(socketserver.DatagramRequestHandler):
     """
     Echo server class
     """
+    client = {'ip': '', 'puerto': 0}
     client_ip = ''
     client_port = 0
 
@@ -57,9 +58,9 @@ class EchoHandler(socketserver.DatagramRequestHandler):
                     line2 = self.rfile.read()
                     cadena = line2.decode('utf-8')
                     if cadena.split('=')[0] == 'o':
-                        self.client_ip = cadena.split('=')[1].split(' ')[1]
+                        self.client['ip'] = cadena.split('=')[1].split(' ')[1]
                     if cadena.split('=')[0] == 'm':
-                        self.client_port = cadena.split('=')[1].split(' ')[1]
+                        self.client['puerto'] = cadena.split('=')[1].split(' ')[1]
                     if not line2:
                         break
                 # Enviamos el audio
