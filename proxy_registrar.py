@@ -39,6 +39,7 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                 self.diccionario[client] = {'address': address}
                 self.register2json()
                 print('Actualizado ' + client + ' en el diccionario.\r')
+
             else:
                 address = str(self.client_address[0])
                 self.diccionario[client] = {'address': address}

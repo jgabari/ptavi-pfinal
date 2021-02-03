@@ -10,7 +10,6 @@ import simplertp
 import secrets
 import uaclient
 from xml.sax import make_parser
-from xml.sax.handler import ContentHandler
 
 
 class EchoHandler(socketserver.DatagramRequestHandler):
@@ -18,8 +17,6 @@ class EchoHandler(socketserver.DatagramRequestHandler):
     Echo server class
     """
     client = {'ip': '', 'puerto': 0}
-    client_ip = ''
-    client_port = 0
 
     def handle(self):
         # Escribe dirección y puerto del cliente (de tupla client_address)
@@ -77,7 +74,7 @@ class EchoHandler(socketserver.DatagramRequestHandler):
                               payload_type=14, ssrc=200002)
         audio = simplertp.RtpPayloadMp3(AUDIO_FILE)
         simplertp.send_rtp_packet(RTP_header, audio,
-                                  self.client_ip, self.client_port)
+                                  self.client['ip'], self.client['puerto'])
 
 
 if __name__ == "__main__":
