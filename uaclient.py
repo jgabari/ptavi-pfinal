@@ -99,7 +99,7 @@ if __name__ == '__main__':
         sent = 'Sent to ' + config['regproxy']['ip'] + ':' + config['regproxy']['puerto'] + ':' + LINE.replace('\r\n', ' ')
         writelog(sent, config['log']['path'])
         data = my_socket.recv(1024)
-        received = 'Received from ' + config['regproxy']['ip'] + ':' + config['regproxy']['puerto'] + ':' + data.decode('utf-8').replace('\r\n', ' ')
+        received = 'Received from ' + config['regproxy']['ip'] + ':' + config['regproxy']['puerto'] + ': ' + data.decode('utf-8').replace('\r\n', ' ')
         writelog(received, config['log']['path'])
 
         print('Recibido --\r\n', data.decode('utf-8'))

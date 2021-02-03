@@ -24,7 +24,8 @@ class EchoHandler(socketserver.DatagramRequestHandler):
         while 1:
             # Leyendo línea a línea lo que nos envía el cliente
             line = self.rfile.read()
-            uaclient.writelog(line.decode('utf-8').replace('\r\n', ' '), config['log']['path'])
+            received = 'Received from ' + self.client['ip'] + ':' + self.client['puerto'] + ': ' + line.decode('utf-8').replace('\r\n', ' ')
+            uaclient.writelog(received, config['log']['path'])
             if line.decode('utf-8').split(' ')[0] == 'INVITE':
                 SDP = '\r\nv=0\r\no=' + config['account']['username'] + ' ' + config['uaserver']['ip'] + '\r\n'
                 SDP += 's=misesion\r\nt=0\r\nm=audio ' + config['rtpaudio']['puerto'] + ' RTP\r\n'
@@ -33,22 +34,26 @@ class EchoHandler(socketserver.DatagramRequestHandler):
 
                 answer = "SIP/2.0 100 Trying\r\n\r\nSIP/2.0 180 Ringing\r\n\r\nSIP/2.0 200 OK\r\n\r\n" + content_type + content_length + SDP + "\r\n"
                 self.wfile.write(bytes(answer, 'utf-8'))
-                uaclient.writelog(answer.replace('\r\n', ' '), config['log']['path'])
+                sent = 'Sent to ' + self.client['ip'] + ':' + self.client['puerto'] + ':' + answer.replace('\r\n', ' ')
+                uaclient.writelog(sent, config['log']['path'])
 
             elif line.decode('utf-8').split(' ')[0] == 'ACK':
                 send_audio = True
             elif line.decode('utf-8').split(' ')[0] == 'BYE':
                 answer = "SIP/2.0 200 OK\r\n\r\n"
                 self.wfile.write(bytes(answer, 'utf-8'))
-                uaclient.writelog(answer.replace('\r\n', ' '), config['log']['path'])
+                sent = 'Sent to ' + self.client['ip'] + ':' + self.client['puerto'] + ':' + answer.replace('\r\n', ' ')
+                uaclient.writelog(sent, config['log']['path'])
             elif line.decode('utf-8').split(' ')[0] != ('INVITE', 'ACK', 'BYE'):
                 answer = "SIP/2.0 405 Method Not Allowed\r\n\r\n"
                 self.wfile.write(bytes(answer, 'utf-8'))
-                uaclient.writelog(answer.replace('\r\n', ' '), config['log']['path'])
+                sent = 'Sent to ' + self.client['ip'] + ':' + self.client['puerto'] + ':' + answer.replace('\r\n', ' ')
+                uaclient.writelog(sent, config['log']['path'])
             else:
                 answer = "SIP/2.0 400 Bad Request\r\n\r\n"
                 self.wfile.write(bytes(answer, 'utf-8'))
-                uaclient.writelog(answer.replace('\r\n', ' '), config['log']['path'])
+                sent = 'Sent to ' + self.client['ip'] + ':' + self.client['puerto'] + ':' + answer.replace('\r\n', ' ')
+                uaclient.writelog(sent, config['log']['path'])
             if send_audio:
                 # Extraemos del sdp la dirección a la que enviar el audio
                 while 1:
@@ -62,7 +67,7 @@ class EchoHandler(socketserver.DatagramRequestHandler):
                         break
                 # Enviamos el audio
                 self.send_rtp()
-                uaclient.writelog('Sending audio...', config['log']['path'])
+                uaclient.writelog('Sending audio to ' + self.client['ip'] + ':' + self.client['puerto'] + '...', config['log']['path'])
 
             # Si no hay más líneas salimos del bucle infinito
             if not line:
