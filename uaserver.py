@@ -40,11 +40,17 @@ class EchoHandler(socketserver.DatagramRequestHandler):
             elif line.decode('utf-8').split(' ')[0] == 'ACK':
                 send_audio = True
             elif line.decode('utf-8').split(' ')[0] == 'BYE':
-                self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
+                answer = "SIP/2.0 200 OK\r\n\r\n"
+                self.wfile.write(bytes(answer, 'utf-8'))
+                uaclient.writelog(answer.replace('\r\n', ' '), config['log']['path'])
             elif line.decode('utf-8').split(' ')[0] != ('INVITE', 'ACK', 'BYE'):
-                self.wfile.write(b"SIP/2.0 405 Method Not Allowed\r\n\r\n")
+                answer = "SIP/2.0 405 Method Not Allowed\r\n\r\n"
+                self.wfile.write(bytes(answer, 'utf-8'))
+                uaclient.writelog(answer.replace('\r\n', ' '), config['log']['path'])
             else:
-                self.wfile.write(b"SIP/2.0 400 Bad Request\r\n\r\n")
+                answer = "SIP/2.0 400 Bad Request\r\n\r\n"
+                self.wfile.write(bytes(answer, 'utf-8'))
+                uaclient.writelog(answer.replace('\r\n', ' '), config['log']['path'])
             if send_audio:
                 # Extraemos del sdp la dirección a la que enviar el audio
                 while 1:
@@ -58,6 +64,7 @@ class EchoHandler(socketserver.DatagramRequestHandler):
                         break
                 # Enviamos el audio
                 self.send_rtp()
+                uaclient.writelog('Sending audio...', config['log']['path'])
 
             # Si no hay más líneas salimos del bucle infinito
             if not line:
@@ -86,6 +93,7 @@ if __name__ == "__main__":
 
     config = xHandler.get_tags()
 
+    AUDIO_FILE = open(config['audio']['path'])
     serv = socketserver.UDPServer((config['uaserver']['ip'], config['uaserver']['puerto']), EchoHandler)
     print("Listening...")
     try:
