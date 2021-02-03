@@ -101,6 +101,9 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
         except FileNotFoundError:
             self.diccionario = self.diccionario
 
+    def rebote(self):
+
+
 
 if __name__ == "__main__":
     # Listens at localhost ('') port puerto
