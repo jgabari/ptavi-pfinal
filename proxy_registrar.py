@@ -8,8 +8,26 @@ import socket
 import sys
 import json
 import time
-import uaclient
 from xml.sax import make_parser
+from xml.sax.handler import ContentHandler
+
+
+class XMLHandler(ContentHandler):
+    def __init__(self):
+        self.content = {}
+        self.names = {'server': ['nombre', 'ip', 'puerto'],
+                           'database': ['path', 'passwdpath'],
+                           'log': ['path']}
+
+    def startElement(self, name, attrs):
+        if name in list(self.names):
+            auxdict = {}
+            for attr in self.names[name]:
+                auxdict[attr] = attrs.get(attr, "")
+                self.content[name] = auxdict
+
+    def get_tags(self):
+        return self.content
 
 
 class SIPRegisterHandler(socketserver.DatagramRequestHandler):
@@ -152,7 +170,7 @@ if __name__ == "__main__":
         sys.exit('Usage: python3 proxy_registrar.py config')
 
     parser = make_parser()
-    xHandler = uaclient.XMLHandler()
+    xHandler = XMLHandler()
     parser.setContentHandler(xHandler)
     parser.parse(open(CONFXML))
 
