@@ -24,8 +24,8 @@ class XMLHandler(ContentHandler):
 
     def startElement(self, name, attrs):
         if name in list(self.names):
+            auxdict = {}
             for attr in self.names[name]:
-                auxdict = {}
                 auxdict[attr] = attrs.get(attr, "")
                 self.content[name] = auxdict
 
