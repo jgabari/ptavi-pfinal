@@ -16,11 +16,11 @@ class XMLHandler(ContentHandler):
     def __init__(self):
         self.content = {}
         self.names = {'account': ['username', 'passwd'],
-                           'uaserver': ['ip', 'puerto'],
-                           'rtpaudio': ['puerto'],
-                           'regproxy': ['ip', 'puerto'],
-                           'log': ['path'],
-                           'audio': ['path']}
+                      'uaserver': ['ip', 'puerto'],
+                      'rtpaudio': ['puerto'],
+                      'regproxy': ['ip', 'puerto'],
+                      'log': ['path'],
+                      'audio': ['path']}
 
     def startElement(self, name, attrs):
         if name in list(self.names):
@@ -74,7 +74,8 @@ if __name__ == '__main__':
 
     # Contenido que vamos a enviar
     if METHOD == 'REGISTER':
-        LINE = 'REGISTER sip:' + CLIENT_NAME + ':' + CLIENT_PORT + ' SIP/2.0\r\n'
+        LINE = 'REGISTER sip:' + CLIENT_NAME + ':' + CLIENT_PORT +\
+               ' SIP/2.0\r\n'
         LINE += 'Expires: ' + str(OPTION)
     elif METHOD == 'INVITE':
         LINE = 'INVITE sip:' + OPTION + ' SIP/2.0\r\n'
@@ -88,25 +89,34 @@ if __name__ == '__main__':
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as my_socket:
         my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
-            my_socket.connect((config['regproxy']['ip'], int(config['regproxy']['puerto'])))
+            my_socket.connect((config['regproxy']['ip'],
+                               int(config['regproxy']['puerto'])))
         except ConnectionRefusedError:
-            error = 'Error: No server listening at ' + config['regproxy']['ip'] + ' port ' + config['regproxy']['puerto']
+            error = 'Error: No server listening at ' +\
+                    config['regproxy']['ip'] + ' port ' +\
+                    config['regproxy']['puerto']
             writelog(error, config['log']['path'])
             sys.exit('Conexión Fallida.')
 
         print("Enviando:\r\n" + LINE)
         my_socket.send(bytes(LINE, 'utf-8') + b'\r\n')
-        sent = 'Sent to ' + config['regproxy']['ip'] + ':' + config['regproxy']['puerto'] + ':' + LINE.replace('\r\n', ' ')
+        sent = 'Sent to ' + config['regproxy']['ip'] + ':' +\
+               config['regproxy']['puerto'] + ':' + LINE.replace('\r\n', ' ')
         writelog(sent, config['log']['path'])
         data = my_socket.recv(1024)
-        received = 'Received from ' + config['regproxy']['ip'] + ':' + config['regproxy']['puerto'] + ': ' + data.decode('utf-8').replace('\r\n', ' ')
+        received = 'Received from ' + config['regproxy']['ip'] + ':' +\
+                   config['regproxy']['puerto'] + ': ' +\
+                   data.decode('utf-8').replace('\r\n', ' ')
         writelog(received, config['log']['path'])
 
         print('Recibido --\r\n', data.decode('utf-8'))
-        if data.decode('utf-8')[: data.decode('utf-8').index('\r\n')] == "SIP/2.0 100 Trying":
+        if data.decode('utf-8')[: data.decode('utf-8').index('\r\n')] ==\
+                "SIP/2.0 100 Trying":
             print("Enviando: " + ACK_LINE)
             my_socket.send(bytes(ACK_LINE, 'utf-8') + b'\r\n')
-            sentack = 'Sent to ' + config['regproxy']['ip'] + ':' + config['regproxy']['puerto'] + ':' + ACK_LINE.replace('\r\n', ' ')
+            sentack = 'Sent to ' + config['regproxy']['ip'] + ':' +\
+                      config['regproxy']['puerto'] + ':' +\
+                      ACK_LINE.replace('\r\n', ' ')
             writelog(sentack, config['log']['path'])
 
         writelog('Finishing.', config['log']['path'])

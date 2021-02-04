@@ -17,8 +17,8 @@ class XMLHandler(ContentHandler):
     def __init__(self):
         self.content = {}
         self.names = {'server': ['nombre', 'ip', 'puerto'],
-                           'database': ['path', 'passwdpath'],
-                           'log': ['path']}
+                      'database': ['path', 'passwdpath'],
+                      'log': ['path']}
 
     def startElement(self, name, attrs):
         if name in list(self.names):
@@ -51,7 +51,9 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
               ', puerto:' + str(self.client_address[1]) +
               ' manda:\r\n')
         text = self.rfile.read().decode('utf-8')
-        received = 'Received from ' + str(self.client_address[0]) + ':' + str(self.client_address[1]) + ': ' + text.replace('\r\n', ' ')
+        received = 'Received from ' + str(self.client_address[0]) + ':' +\
+                   str(self.client_address[1]) + ': ' +\
+                   text.replace('\r\n', ' ')
         uaclient.writelog(received, config['log']['path'])
 
         print(text)
@@ -85,7 +87,8 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                     self.register2json()
             answer = "SIP/2.0 200 OK\r\n\r\n"
             self.wfile.write(bytes(answer, 'utf-8'))
-            sent = 'Sent to ' + ip + ':' + port + ':' + answer.replace('\r\n', ' ')
+            sent = 'Sent to ' + ip + ':' + port + ':' +\
+                   answer.replace('\r\n', ' ')
             uaclient.writelog(sent, config['log']['path'])
         elif word_list[0] == 'INVITE':
             invited = word_list[1].split(':')[1]
@@ -166,7 +169,8 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
             my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             my_socket.connect((client_ip, client_port))
             my_socket.send(bytes(message, 'utf-8') + b'\r\n')
-            sent = 'Sent to ' + client_ip + ':' + str(client_port) + ':' + message.replace('\r\n', ' ')
+            sent = 'Sent to ' + client_ip + ':' + str(client_port) + ':' +\
+                   message.replace('\r\n', ' ')
             uaclient.writelog(sent, config['log']['path'])
 
 
@@ -185,9 +189,12 @@ if __name__ == "__main__":
 
     config = xHandler.get_tags()
 
-    serv = socketserver.UDPServer((config['server']['ip'], int(config['server']['puerto'])), SIPRegisterHandler)
+    serv = socketserver.UDPServer((config['server']['ip'],
+                                   int(config['server']['puerto'])),
+                                  SIPRegisterHandler)
 
-    print("Server " + config['server']['nombre'] + " listening at port " + config['server']['puerto'] + "...")
+    print("Server " + config['server']['nombre'] + " listening at port " +
+          config['server']['puerto'] + "...")
 
     try:
         serv.serve_forever()
