@@ -4,6 +4,7 @@ Clase (y programa principal) para un servidor de eco en UDP simple
 """
 
 import socketserver
+import socket
 import sys
 import json
 import time
@@ -17,6 +18,8 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
     """
     diccionario = {}
     format = '%Y-%m-%d %H:%M:%S'
+    invited = ''
+    inviter = ''
 
     def handle(self):
         """
@@ -35,14 +38,16 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
         if word_list[0] == 'REGISTER':
             client = word_list[1].split(':')[1]
             if client in self.diccionario:
-                address = str(self.client_address[0])
-                self.diccionario[client] = {'address': address}
+                ip = str(self.client_address[0])
+                port = self.client_address[1]
+                self.diccionario[client] = {'ip': ip, 'port': port}
                 self.register2json()
                 print('Actualizado ' + client + ' en el diccionario.\r')
 
             else:
-                address = str(self.client_address[0])
-                self.diccionario[client] = {'address': address}
+                ip = str(self.client_address[0])
+                port = self.client_address[1]
+                self.diccionario[client] = {'ip': ip, 'port': port}
                 self.register2json()
                 print('Añadido ' + client + ' al diccionario.\r')
             if word_list[3] == 'Expires:':
@@ -58,18 +63,48 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                     self.register2json()
             self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
         elif word_list[0] == 'INVITE':
-            self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
-        elif word_list[0] == 'ACK':
+            self.invited = word_list[1].split(':')[1]
+            if self.invited in self.diccionario:
+                invited_ip = self.diccionario[self.invited]['ip']
+                invited_port = self.diccionario[self.invited]['port']
+                self.rebote(invited_ip, invited_port, text)
+            else:
+                self.wfile.write(b"SIP/2.0 404 User Not Found\r\n\r\n")
+            # extraemos del sdp el origen
+            while 1:
+                line2 = self.rfile.read()
+                cadena = line2.decode('utf-8')
+                if cadena.split('=')[0] == 'o':
+                    self.inviter = cadena.split('=')[1].split(' ')[0]
+                if not line2:
+                    break
 
+        elif word_list[0] == 'ACK':
+            invited = word_list[1].split(':')[1]
+            if invited in self.diccionario:
+                invited_ip = self.diccionario[invited]['ip']
+                invited_port = self.diccionario[invited]['port']
+                self.rebote(invited_ip, invited_port, text)
+            else:
+                self.wfile.write(b"SIP/2.0 404 User Not Found\r\n\r\n")
         elif word_list[0] == 'BYE':
-            self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
-        elif word_list[0] != ('REGISTER', 'INVITE', 'ACK', 'BYE'):
+            invited = word_list[1].split(':')[1]
+            if invited in self.diccionario:
+                invited_ip = self.diccionario[invited]['ip']
+                invited_port = self.diccionario[invited]['port']
+                self.rebote(invited_ip, invited_port, text)
+            else:
+                self.wfile.write(b"SIP/2.0 404 User Not Found\r\n\r\n")
+        elif word_list[0] == 'SIP/2.0' and word_list[7] == '200':
+            inviter_ip = self.diccionario[self.inviter]['ip']
+            inviter_port = self.diccionario[self.inviter]['port']
+            self.rebote(inviter_ip, inviter_port, text)
+        elif word_list[0] != ('REGISTER', 'INVITE', 'ACK', 'BYE', 'SIP/2.0'):
             self.wfile.write(b"SIP/2.0 405 Method Not Allowed\r\n\r\n")
         else:
             self.wfile.write(b"SIP/2.0 400 Bad Request\r\n\r\n")
 
         print(self.diccionario)
-
 
     def expiration(self):
         """
@@ -101,8 +136,11 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
         except FileNotFoundError:
             self.diccionario = self.diccionario
 
-    def rebote(self):
-
+    def rebote(self, client_ip, client_port, message):
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as my_socket:
+            my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            my_socket.connect((client_ip, client_port))
+            my_socket.send(bytes(message, 'utf-8') + b'\r\n')
 
 
 if __name__ == "__main__":
