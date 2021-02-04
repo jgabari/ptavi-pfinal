@@ -1,5 +1,5 @@
 <config>
     <server nombre="MiServidorGuay" ip="127.0.0.1" puerto="6003"/>
     <database path="registered.json" passwdpath="passwords.json"/>
-    <log>prlog.txt</log>
+    <log path="prlog.txt"/>
 </config>
