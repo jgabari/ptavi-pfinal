@@ -88,7 +88,7 @@ if __name__ == '__main__':
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as my_socket:
         my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
-            my_socket.connect((config['regproxy']['ip'], config['regproxy']['puerto']))
+            my_socket.connect((config['regproxy']['ip'], int(config['regproxy']['puerto'])))
         except ConnectionRefusedError:
             error = 'Error: No server listening at ' + config['regproxy']['ip'] + ' port ' + config['regproxy']['puerto']
             writelog(error, config['log']['path'])

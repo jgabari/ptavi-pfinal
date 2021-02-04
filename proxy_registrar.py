@@ -176,9 +176,9 @@ if __name__ == "__main__":
 
     config = xHandler.get_tags()
 
-    serv = socketserver.UDPServer((config['server']['ip'], config['server']['puerto']), SIPRegisterHandler)
+    serv = socketserver.UDPServer((config['server']['ip'], int(config['server']['puerto'])), SIPRegisterHandler)
 
-    print("Server " + config['server']['name'] + " listening at port " + config['server']['puerto'] + "...")
+    print("Server " + config['server']['nombre'] + " listening at port " + config['server']['puerto'] + "...")
 
     try:
         serv.serve_forever()

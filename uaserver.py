@@ -5,6 +5,7 @@ Clase (y programa principal) para un servidor de eco en UDP simple
 """
 
 import socketserver
+import socket
 import sys
 import simplertp
 import secrets
@@ -21,6 +22,8 @@ class EchoHandler(socketserver.DatagramRequestHandler):
     def handle(self):
         # Escribe dirección y puerto del cliente (de tupla client_address)
         send_audio = False
+        register = 'REGISTER sip:' + config['account']['username'] + ':' + config['uaserver']['puerto'] + ' SIP/2.0\r\n'
+        self.wfile.write(bytes(register, 'utf-8'))
         while 1:
             # Leyendo línea a línea lo que nos envía el cliente
             line = self.rfile.read()
@@ -97,7 +100,17 @@ if __name__ == "__main__":
     config = xHandler.get_tags()
 
     AUDIO_FILE = open(config['audio']['path'])
-    serv = socketserver.UDPServer((config['uaserver']['ip'], config['uaserver']['puerto']), EchoHandler)
+
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as my_socket:
+        my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            my_socket.connect((config['regproxy']['ip'], int(config['regproxy']['puerto'])))
+        except ConnectionRefusedError:
+            error = 'Error: No server listening at ' + config['regproxy']['ip'] + ' port ' + config['regproxy']['puerto']
+            sys.exit('Conexión Fallida.')
+
+    serv = socketserver.UDPServer((config['uaserver']['ip'], int(config['uaserver']['puerto'])), EchoHandler)
+
     print("Listening...")
     try:
         serv.serve_forever()
