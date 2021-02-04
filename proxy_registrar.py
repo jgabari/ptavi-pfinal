@@ -10,6 +10,7 @@ import json
 import time
 from xml.sax import make_parser
 from xml.sax.handler import ContentHandler
+import uaclient
 
 
 class XMLHandler(ContentHandler):
@@ -50,6 +51,9 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
               ', puerto:' + str(self.client_address[1]) +
               ' manda:\r\n')
         text = self.rfile.read().decode('utf-8')
+        received = 'Received from ' + str(self.client_address[0]) + ':' + str(self.client_address[1]) + ': ' + text.replace('\r\n', ' ')
+        uaclient.writelog(received, config['log']['path'])
+
         print(text)
 
         word_list = text.split()
@@ -79,12 +83,15 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                     expires = time.strftime(self.format, expire_time)
                     self.diccionario[client]['expires'] = expires
                     self.register2json()
-            self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
+            answer = "SIP/2.0 200 OK\r\n\r\n"
+            self.wfile.write(bytes(answer, 'utf-8'))
+            sent = 'Sent to ' + ip + ':' + port + ':' + answer.replace('\r\n', ' ')
+            uaclient.writelog(sent, config['log']['path'])
         elif word_list[0] == 'INVITE':
-            self.invited = word_list[1].split(':')[1]
-            if self.invited in self.diccionario:
-                invited_ip = self.diccionario[self.invited]['ip']
-                invited_port = self.diccionario[self.invited]['port']
+            invited = word_list[1].split(':')[1]
+            if invited in self.diccionario:
+                invited_ip = self.diccionario[invited]['ip']
+                invited_port = self.diccionario[invited]['port']
                 self.rebote(invited_ip, invited_port, text)
             else:
                 self.wfile.write(b"SIP/2.0 404 User Not Found\r\n\r\n")
@@ -113,7 +120,7 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                 self.rebote(invited_ip, invited_port, text)
             else:
                 self.wfile.write(b"SIP/2.0 404 User Not Found\r\n\r\n")
-        elif word_list[0] == 'SIP/2.0' and word_list[7] == '200':
+        elif word_list[0] == 'SIP/2.0' and word_list[1] == '100':
             inviter_ip = self.diccionario[self.inviter]['ip']
             inviter_port = self.diccionario[self.inviter]['port']
             self.rebote(inviter_ip, inviter_port, text)
@@ -159,6 +166,8 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
             my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             my_socket.connect((client_ip, client_port))
             my_socket.send(bytes(message, 'utf-8') + b'\r\n')
+            sent = 'Sent to ' + client_ip + ':' + str(client_port) + ':' + message.replace('\r\n', ' ')
+            uaclient.writelog(sent, config['log']['path'])
 
 
 if __name__ == "__main__":

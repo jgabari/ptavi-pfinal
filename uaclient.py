@@ -103,7 +103,7 @@ if __name__ == '__main__':
         writelog(received, config['log']['path'])
 
         print('Recibido --\r\n', data.decode('utf-8'))
-        if data.decode('utf-8').split(' ')[1] == '100':
+        if data.decode('utf-8')[: data.decode('utf-8').index('\r\n')] == "SIP/2.0 100 Trying":
             print("Enviando: " + ACK_LINE)
             my_socket.send(bytes(ACK_LINE, 'utf-8') + b'\r\n')
             sentack = 'Sent to ' + config['regproxy']['ip'] + ':' + config['regproxy']['puerto'] + ':' + ACK_LINE.replace('\r\n', ' ')

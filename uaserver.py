@@ -22,8 +22,6 @@ class EchoHandler(socketserver.DatagramRequestHandler):
     def handle(self):
         # Escribe dirección y puerto del cliente (de tupla client_address)
         send_audio = False
-        register = 'REGISTER sip:' + config['account']['username'] + ':' + config['uaserver']['puerto'] + ' SIP/2.0\r\n'
-        self.wfile.write(bytes(register, 'utf-8'))
         while 1:
             # Leyendo línea a línea lo que nos envía el cliente
             line = self.rfile.read()
@@ -108,6 +106,9 @@ if __name__ == "__main__":
         except ConnectionRefusedError:
             error = 'Error: No server listening at ' + config['regproxy']['ip'] + ' port ' + config['regproxy']['puerto']
             sys.exit('Conexión Fallida.')
+        register = 'REGISTER sip:' + config['account']['username'] + ':' + config['uaserver']['puerto'] + ' SIP/2.0\r\n'
+        register += 'Expires: ' + '3600'
+        my_socket.send(bytes(register, 'utf-8'))
 
     serv = socketserver.UDPServer((config['uaserver']['ip'], int(config['uaserver']['puerto'])), EchoHandler)
 
